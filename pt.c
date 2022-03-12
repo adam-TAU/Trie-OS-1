@@ -1,6 +1,6 @@
 #include "os.h"
 #include <stdlib.h>
-
+#define 
 
 /* Submitter: Adam
  * Operating Systems, Tel Aviv University, 2022A.
@@ -23,27 +23,70 @@
  */
 static uint64_t* get_entry(uint64_t vpn, uint64_t ppn, size_t depth);
 
+/* Given an entry's address and its physical page number, nullify the value (remove the mapping) of the entry,
+ * and free the Page of the node it relies in if it has gotten empty of mappings. */ 
+static void remove_mapping(uint64_t node_ppn, uint64_t* entry_pa_virt)
+
+/* Given a node's ppn, determine of its empty of any VPN's mapping. */
+static int is_node_empty(uint64_t node_ppn);
+
+/* Given a node's ppn, free its Physical Page*/
+static void free_node(uint64_t node_ppn);
+
+/* If a node is empty of any VPN's mapping, free its Physical Page */
+static void free_node_safe(uint64_t node_ppn);
 
 
+/**************** AUXILIARY FUNCTION DEFINITIONS ******************/
 
 
-/******************************************************************/
-
-
-static uint64_t* get_entry(uint64_t vpn, uint64_t ppn, size_t depth) {
+static uint64_t* get_entry(uint64_t vpn, uint64_t node_ppn, size_t depth) {
 	
-	uint64_t* ppn_virt = (uint64_t*) phys_to_virt(ppn);
+	uint64_t* node_ppn_virt = (uint64_t*) phys_to_virt(node_ppn);
 	uint64_t offset = vpn & ( 0x1ff000 << ((4 - depth) * 9) ); // at path traversal's depth: depth, the next 9 bits in VPN that refer to the next entry in the current PPN, are at a location of [12 ... 20] + ((4 - depth) * 9)
-	uint64_t* pa_virt = ppn_virt + offset;
+	uint64_t* entry_pa_virt = node_ppn_virt + offset;
 	
-	return pa_virt;
+	return entry_pa_virt;
+}
+
+
+static void remove_mapping(uint64_t node_ppn, uint64_t* entry_pa_virt) {
+	/* nullifythe entry_pa_virt's value somehow */
+	free_node_safe(node_ppn);
+}
+
+
+static int is_node_empty(uint64_t node_ppn) {
+	/* FIND A WAY TO DETERMINE IF ENTRIES ARE EMPTY */
+	uint64_t* node_ppn_virt = (uint64_t*) phys_to_virt(node_ppn);
+	return (node_ppn_virt == NULL);
+}
+
+
+static void free_node(uint64_t node_ppn) {
+	free_page_frame(node_ppn);
+}
+
+
+static void free_node_safe(uint64_t node_ppn) {
+	if (is_node_empty(node_ppn)) {
+		free_node(node_ppn);
+	}
 }
 
 
 
+/**************** MAIN MECHANISM's DEFINITIONS ******************/
 
 void page_table_update(uint64_t pt, uint64_t vpn, uint64_t ppn) {
-
+	
+	uint64_t current_node_ppn = pt;
+	
+	for (size_t depth = 0; depth < 5; depth++) { /* Personal calculations showed that the Page Table should be of height 5 */
+		uint64_t* entry = get_entry(vpn, current_node_ppn, depth);
+		
+		if (*entry 
+	}
 }
 
 
