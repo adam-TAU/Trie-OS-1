@@ -1,5 +1,6 @@
 #include "os.h"
 #include <stdlib.h>
+#include <stdio.h>
 #define bool int
 #define true 1
 #define false 0
@@ -137,8 +138,20 @@ static bool remove_mapping(uint64_t *current_node_ppn, uint64_t vpn, size_t dept
 
 static uint64_t* get_entry(uint64_t vpn, uint64_t node_ppn, size_t depth) {
 	
+	/* at the search path's depth, the next 9 bits in the VPN, that are responsible to the location of the entry in the current node are:
+	 * the bits of: [12 ... 20] + ((4 - depth) * 9).
+	 * I chose 9 bits since each Page is of 4KB size, and the page numbers are 64 bit (= 8B) wide (both physical and virtual), so:
+	 * Considering that 4KB / 8B = 512, we get that each physical page shall hold 512 entries. 
+	 * So, as viewed in class, since we want each node to be a whole physical page (so lower bits are used for crucial purposes),
+	 * We get that there are 512 symbols in our alphabet. That's 9 bit representations.
+	 * So, the first symbol of a VPN is at bits: [12 ... 20]
+	 * The second symbol of a VPN is at bits: [21 ... 29]
+	 * So, we get that each VPN holds a total of 5 symbols - which means that there are 5 levels to this Page Table.
+	 * And so on. Depth ---> <Depth + 1>_th symbol.
+     */
+	uint64_t offset = ((vpn >> 12) >> (depth * 9)) & 0x1ff;
+	
 	uint64_t* node_ppn_virt = (uint64_t*) phys_to_virt(node_ppn);
-	uint64_t offset = vpn & ( 0x1ff000 << ((4 - depth) * 9) ); // at the search path's depth: depth, the next 9 bits in VPN that refer to the next entry in the current PPN, are at a location of [12 ... 20] + ((4 - depth) * 9)
 	uint64_t* entry_pa_virt = node_ppn_virt + offset;
 	
 	return entry_pa_virt;
@@ -198,8 +211,9 @@ uint64_t page_table_query(uint64_t pt, uint64_t vpn) {
 	
 	for (size_t depth = 0; depth < 5; depth++) { /* Personal calculations showed that the Page Table should be of height 5, with 512 entries for each node */
 		uint64_t* entry = get_entry(vpn, current_node_ppn, depth);
-	
+		printf("here1\n");
 		if (depth == 4 || (*entry == NO_MAPPING) ) { // we reached the end of the search path - we'll return the corresponding entry
+			printf("here %li, should've been: %lli\n", *entry, NO_MAPPING);
 			return *entry;
 			
 		} else { // we're still inside the search path, continue to the next node in the search path	
