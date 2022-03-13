@@ -109,7 +109,7 @@ static bool remove_mapping(uint64_t *current_node_ppn, uint64_t vpn, size_t dept
 		if (depth != 4) { // in this case, there was nothing to remove to begin with
 			return false;
 		} else if (is_valid(*entry) == false) { // in this case, the entry of the VPN->PPN was empty to begin with
-			return true;
+			return false;
 		} else { // in this case, there was in fact a mapping that VPN held, and we'll invalidate it as desired
 			invalidate(entry);
 			return true;
@@ -191,7 +191,7 @@ static bool is_valid(uint64_t ppn) {
 static bool is_node_empty(uint64_t node_ppn) {
 	
 	/* DETERMINE IF ALL ENTRIES ARE EMPTY */
-	uint64_t* node_ppn_virt = (uint64_t*) phys_to_virt(node_ppn);
+	uint64_t* node_ppn_virt = (uint64_t*) phys_to_virt((node_ppn >> 12) << 12);
 	bool empty = true; // assume the node has all empty entries
 	
 	for (size_t i = 0; i < 512; i++) {
