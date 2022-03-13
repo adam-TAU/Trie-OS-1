@@ -1,7 +1,7 @@
 #include "os.h"
 #include <assert.h>
 #include <stdio.h>
-#define MAX_PAGES 0x100000 /*2^20=16^5
+#define MAX_PAGES 0x100000 /*2^20=16^5  /// 
                     ^
                     |__ = 1*16^5
 */
@@ -23,12 +23,12 @@ int main(){
     printf("finished.\n\n");
 
     printf("checking that all vpn's are not mapped...\n");
-    /* for (page=0;page<MAX_PAGES;++page){
+    for (page=0;page<MAX_PAGES;++page){
         assert(page_table_query(pt0,page)==NO_MAPPING);
         assert(page_table_query(pt1,page)==NO_MAPPING);
         assert(page_table_query(pt2,page)==NO_MAPPING);
         assert(page_table_query(pt3,page)==NO_MAPPING);
-    } */
+    }
     printf("finito.\n\n");
 
 	
