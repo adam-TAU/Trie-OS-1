@@ -72,8 +72,7 @@ static void insert_mapping(uint64_t page_table_frame_format, uint64_t vpn, uint6
 		uint64_t* entry = get_entry(vpn, current_node_ppn, depth);
 	
 		if (depth == 4) { // we reached the end of the search path - we'll now insert the mentioned VPN->PPN mapping
-			*entry = ppn;
-			
+			*entry = (ppn << 12);
 		} else { // we're still inside the search path
 		
 			// the entry of the VPN in the current node isn't mapped to a new node -> create a new node 
@@ -87,7 +86,6 @@ static void insert_mapping(uint64_t page_table_frame_format, uint64_t vpn, uint6
 		 * just to be sure that further queries are not going to skip over these nodes in the search path */
 		validate(entry);
 	}
-
 }
 
 
@@ -164,7 +162,7 @@ static uint64_t* get_entry(uint64_t vpn, uint64_t node_ppn, size_t depth) {
 	 * So, we get that each VPN holds a total of 5 symbols - which means that there are 5 levels to this Page Table.
 	 * And so on. Depth ---> <Depth + 1>_th symbol.
      */
-	uint64_t offset = ((vpn >> 12) >> (depth * 9)) & 0x1ff;
+	uint64_t offset = (vpn >> (depth * 9)) & 0x1ff;
 	
 	/* The node's PPN that we will get might be trashed with flags and valid bits at the last 12 bits of it.
 	 * So, we'll zero them out when trying to access the virtual address that points to the physical address of the start of the Page. */
@@ -229,7 +227,7 @@ void page_table_update(uint64_t pt, uint64_t vpn, uint64_t ppn) {
 	
 	uint64_t page_table_frame_format = (pt << 12);
 	
-	if (is_valid(ppn) == true) { // if the desired action was to create/update the mapping
+	if (ppn != NO_MAPPING) { // if the desired action was to create/update the mapping
 		insert_mapping(page_table_frame_format, vpn, ppn);
 	} else { // if the desired action was to remove the mapping
 		remove_mapping(&page_table_frame_format, vpn, 0);
@@ -249,7 +247,7 @@ uint64_t page_table_query(uint64_t pt, uint64_t vpn) {
 		uint64_t* entry = get_entry(vpn, current_node_ppn, depth);
 		
 		if (depth == 4 || (!is_valid(*entry)) ) { // we reached the end of the search path - we'll return the corresponding entry
-			return is_valid(*entry) ? (*entry) : NO_MAPPING;
+			return is_valid(*entry) ? ((*entry) >> 12) : NO_MAPPING;
 			
 		} else { // we're still inside the search path, continue to the next node in the search path	
 			current_node_ppn = *entry;
