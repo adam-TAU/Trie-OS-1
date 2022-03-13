@@ -34,10 +34,11 @@ static bool remove_mapping(uint64_t *current_node_ppn, uint64_t vpn, size_t dept
  */
 static uint64_t* get_entry(uint64_t vpn, uint64_t ppn, size_t depth);
 
+/* Given an entry's pointer in a Page Table, validate the entry (by making the entry's value equal to 1, and thus making the valid bit 1 => valid) */
+static void validate(uint64_t *ppn);
+
 /* Given an entry's pointer in a Page Table, invalidate the entry (by making the entry's value equal to zero, and thus making the valid bit 0 => invalid) */
-static void invalidate(uint64_t *ppn) {
-	*ppn = 0;
-}
+static void invalidate(uint64_t *ppn);
 
 /* Determine if an entry inside a node maps to an invalid PPN - using its valid bit as an indicator.
  * This corresponds with the NO_MAPPING value. */
@@ -66,7 +67,8 @@ static void insert_mapping(uint64_t pt, uint64_t vpn, uint64_t ppn) {
 
 	uint64_t current_node_ppn = pt;
 	
-	for (size_t depth = 0; depth < 5; depth++) { /* Personal calculations showed that the Page Table should be of height 5, with 512 entries for each node */
+	/* Personal calculations showed that the Page Table should be of height 5, with 512 entries for each node */
+	for (size_t depth = 0; depth < 5; depth++) { 
 		uint64_t* entry = get_entry(vpn, current_node_ppn, depth);
 	
 		if (depth == 4) { // we reached the end of the search path - we'll now insert the mentioned VPN->PPN mapping
@@ -75,11 +77,15 @@ static void insert_mapping(uint64_t pt, uint64_t vpn, uint64_t ppn) {
 		} else { // we're still inside the search path
 		
 			// the entry of the VPN in the current node isn't mapped to a new node -> create a new node 
-			if (is_valid(*entry) == false) *entry = alloc_page_frame(); 
+			if (is_valid(*entry) == false) *entry = (alloc_page_frame() << 12); 
 			
 			// continue to the next node in the search path				
 			current_node_ppn = *entry;
 		}
+		
+		/* validate the entry that we're at in the search path:
+		 * just to be sure that further queries are not going to skip over these nodes in the search path */
+		validate(entry);
 	}
 
 }
@@ -160,12 +166,24 @@ static uint64_t* get_entry(uint64_t vpn, uint64_t node_ppn, size_t depth) {
      */
 	uint64_t offset = ((vpn >> 12) >> (depth * 9)) & 0x1ff;
 	
-	uint64_t* node_ppn_virt = (uint64_t*) phys_to_virt(node_ppn);
+	/* The node's PPN that we will get might be trashed with flags and valid bits at the last 12 bits of it.
+	 * So, we'll zero them out when trying to access the virtual address that points to the physical address of the start of the Page. */
+	uint64_t* node_ppn_virt = (uint64_t*) phys_to_virt((node_ppn >> 12) << 12);
+	
+	/* Calculate the virtual address of the node's entry which is in the VPN's search path.
+	 * Return it right after. */
 	uint64_t* entry_pa_virt = node_ppn_virt + offset;
 	
 	return entry_pa_virt;
 }
 
+static void validate(uint64_t *ppn) {
+	*ppn = *ppn | 0x1;
+}
+
+static void invalidate(uint64_t *ppn) {
+	*ppn = 0;
+}
 
 static bool is_valid(uint64_t ppn) {
 	return ppn & 0x1;
@@ -225,15 +243,10 @@ uint64_t page_table_query(uint64_t pt, uint64_t vpn) {
 	
 	for (size_t depth = 0; depth < 5; depth++) { /* Personal calculations showed that the Page Table should be of height 5, with 512 entries for each node */
 		uint64_t* entry = get_entry(vpn, current_node_ppn, depth);
-		printf("here1\n");
+		
+		
 		if (depth == 4 || (!is_valid(*entry)) ) { // we reached the end of the search path - we'll return the corresponding entry
-			printf("here %li, should've been: %lli\n", *entry, NO_MAPPING);
-			
-			if (is_valid(*entry) == true) {
-				return *entry;
-			} else {
-				return NO_MAPPING;
-			}
+			return is_valid(*entry) ? (*entry) : NO_MAPPING;
 			
 		} else { // we're still inside the search path, continue to the next node in the search path	
 			current_node_ppn = *entry;
