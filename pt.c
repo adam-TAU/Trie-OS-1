@@ -63,9 +63,9 @@ static bool free_node_safe(uint64_t *node_ppn);
 
 /**************** AUXILIARY FUNCTION DEFINITIONS ******************/
 
-static void insert_mapping(uint64_t pt, uint64_t vpn, uint64_t ppn) {
+static void insert_mapping(uint64_t page_table_frame_format, uint64_t vpn, uint64_t ppn) {
 
-	uint64_t current_node_ppn = pt;
+	uint64_t current_node_ppn = page_table_frame_format;
 	
 	/* Personal calculations showed that the Page Table should be of height 5, with 512 entries for each node */
 	for (size_t depth = 0; depth < 5; depth++) { 
@@ -169,7 +169,7 @@ static uint64_t* get_entry(uint64_t vpn, uint64_t node_ppn, size_t depth) {
 	/* The node's PPN that we will get might be trashed with flags and valid bits at the last 12 bits of it.
 	 * So, we'll zero them out when trying to access the virtual address that points to the physical address of the start of the Page. */
 	uint64_t* node_ppn_virt = (uint64_t*) phys_to_virt((node_ppn >> 12) << 12);
-	
+
 	/* Calculate the virtual address of the node's entry which is in the VPN's search path.
 	 * Return it right after. */
 	uint64_t* entry_pa_virt = node_ppn_virt + offset;
@@ -227,10 +227,12 @@ static bool free_node_safe(uint64_t *node_ppn) {
 
 void page_table_update(uint64_t pt, uint64_t vpn, uint64_t ppn) {
 	
+	uint64_t page_table_frame_format = pt << 12;
+	
 	if (is_valid(ppn) == true) { // if the desired action was to create/update the mapping
-		insert_mapping(pt, vpn, ppn);
+		insert_mapping(page_table_frame_format, vpn, ppn);
 	} else { // if the desired action was to remove the mapping
-		remove_mapping(&pt, vpn, 0);
+		remove_mapping(&page_table_frame_format, vpn, 0);
 	}
 
 }
