@@ -162,7 +162,7 @@ static uint64_t* get_entry(uint64_t vpn, uint64_t node_ppn, size_t depth) {
 	 * So, we get that each VPN holds a total of 5 symbols - which means that there are 5 levels to this Page Table.
 	 * And so on. Depth ---> <Depth + 1>_th symbol.
      */
-	uint64_t offset = (vpn >> (depth * 9)) & 0x1ff;
+	uint64_t offset = ( vpn >> ((4 - depth) * 9)) & 0x1ff;
 	
 	/* The node's PPN that we will get might be trashed with flags and valid bits at the last 12 bits of it.
 	 * So, we'll zero them out when trying to access the virtual address that points to the physical address of the start of the Page. */
