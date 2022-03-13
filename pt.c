@@ -101,10 +101,10 @@ static bool remove_mapping(uint64_t *current_node_ppn, uint64_t vpn, size_t dept
 	 * or this is the last node in the search path (depth == 4)
 	 * In both cases, invalidate the entry.
 	 * IF the entry was empty to begin with:
-	 		return false to signify to our parent node in the recursion,
-	 		that he can terminate the recursion since none of its entries were invalidated
+	 *		return false to signify to our parent node in the recursion,
+	 *		that he can terminate the recursion since none of its entries were invalidated
 	 * ELSE:
-	 		return true to signify to our next parent that he had one of its entried invalidated.
+	 *		return true to signify to our next parent that he had one of its entried invalidated.
 	 */
 	if (depth == 4 || (is_valid(*entry) == false) ) {
 		
@@ -119,13 +119,14 @@ static bool remove_mapping(uint64_t *current_node_ppn, uint64_t vpn, size_t dept
 
 	/* if we still need to advance in the search for the entry, simply advance to the next node in the search path */
 	} else { 
+	
 		/* IF the recursion returned that the node that we're at hasn't had any entries invalidated:
-		 		we return false to signify to our parent node in the recursion,
-	 			that he can terminate the recursion since none of its entries were invalidated
-		 * ELSE
-		 		we continue on to the next step,
-		 		of determining if the node we're at needs to be freed due to any of its entries being invalidated,
-		 		which is guaranteed due to <true> being returned.
+		 *		we return false to signify to our parent node in the recursion,
+	 	 *		that he can terminate the recursion since none of its entries were invalidated
+		 * ELSE:
+		 *		we continue on to the next step,
+		 *		of determining if the node we're at needs to be freed due to any of its entries being invalidated,
+		 *		which is guaranteed due to <true> being returned.
 		 */
 		if (remove_mapping(entry, vpn, depth + 1) == false) {
 			return false;
@@ -133,13 +134,12 @@ static bool remove_mapping(uint64_t *current_node_ppn, uint64_t vpn, size_t dept
 	}
 
 	/* if we aren't in the page table's root node (which shouldn't be freed at all costs):
-	 * 		check if the node is empty of mapping:
-	 *			 IF so:
-	 				 it frees it, and changes the entry that held the PPN of the node to an invalid entry (valid bit == 0).
-	 				 Then, we return true to signify to our next parent that he had one of its entried invalidated.
-	 * 			 ELSE:
-	 				 the current node wasn't freed, and we return false to signify to our parent node in the recursion,
-	 				 that he can terminate the recursion since none of its entries were invalidated. 
+	 *		IF the node is empty of mapping:
+	 *			it frees it, and changes the entry that held the PPN of the node to an invalid entry (valid bit == 0).
+	 *			Then, we return true to signify to our next parent that he had one of its entried invalidated.
+	 * 		ELSE:
+	 *			the current node wasn't freed, and we return false to signify to our parent node in the recursion,
+	 *			that he can terminate the recursion since none of its entries were invalidated. 
 	 */
 	if (depth != 0) {
 		return free_node_safe(current_node_ppn);
@@ -227,7 +227,7 @@ static bool free_node_safe(uint64_t *node_ppn) {
 
 void page_table_update(uint64_t pt, uint64_t vpn, uint64_t ppn) {
 	
-	uint64_t page_table_frame_format = pt << 12;
+	uint64_t page_table_frame_format = (pt << 12);
 	
 	if (is_valid(ppn) == true) { // if the desired action was to create/update the mapping
 		insert_mapping(page_table_frame_format, vpn, ppn);
@@ -244,9 +244,9 @@ uint64_t page_table_query(uint64_t pt, uint64_t vpn) {
 
 	uint64_t current_node_ppn = (pt << 12);
 	
-	for (size_t depth = 0; depth < 5; depth++) { /* Personal calculations showed that the Page Table should be of height 5, with 512 entries for each node */
+	/* Personal calculations showed that the Page Table should be of height 5, with 512 entries for each node */
+	for (size_t depth = 0; depth < 5; depth++) { 
 		uint64_t* entry = get_entry(vpn, current_node_ppn, depth);
-		
 		
 		if (depth == 4 || (!is_valid(*entry)) ) { // we reached the end of the search path - we'll return the corresponding entry
 			return is_valid(*entry) ? (*entry) : NO_MAPPING;
