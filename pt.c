@@ -55,7 +55,7 @@ static void insert_mapping(uint64_t pt, uint64_t vpn, uint64_t ppn) {
 		if (depth == 4) { // we reached the end of the path traversal - we'll now insert the mentioned VPN->PPN mapping
 			*entry = ppn;
 			
-		} else { // we're still inside the path search
+		} else { // we're still inside the search path
 		
 			// the entry of the VPN in the current node isn't mapped to a new node -> create a new node 
 			if (*entry == NO_MAPPING) *entry = alloc_page_frame(); 
@@ -63,9 +63,6 @@ static void insert_mapping(uint64_t pt, uint64_t vpn, uint64_t ppn) {
 			// continue to the next node in the path				
 			current_node_ppn = *entry;
 		}
-		
-		/* Advancing in depth */
-		depth++;
 	}
 
 }
@@ -150,7 +147,17 @@ void page_table_update(uint64_t pt, uint64_t vpn, uint64_t ppn) {
 
 
 uint64_t page_table_query(uint64_t pt, uint64_t vpn) {
-	uint64_t* pa_virt = get_entry(vpn, pt, 0);
-	if (pa_virt) return 0;
-	return 0;
+	uint64_t current_node_ppn = pt;
+	uint64_t out = NO_MAPPING;
+	
+	for (size_t depth = 0; depth < 5; depth++) { /* Personal calculations showed that the Page Table should be of height 5, with 512 entries for each node */
+		uint64_t* entry = get_entry(vpn, current_node_ppn, depth);
+	
+		if (depth == 4 || (*entry == NO_MAPPING) ) { // we reached the end of the path traversal - we'll return the corresponding entry
+			return *entry;
+			
+		} else { // we're still inside the search path, continue to the next node in the path	
+			current_node_ppn = *entry;
+		}
+	}
 }
