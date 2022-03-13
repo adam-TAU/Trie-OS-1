@@ -241,7 +241,8 @@ void page_table_update(uint64_t pt, uint64_t vpn, uint64_t ppn) {
 
 
 uint64_t page_table_query(uint64_t pt, uint64_t vpn) {
-	uint64_t current_node_ppn = pt;
+
+	uint64_t current_node_ppn = (pt << 12);
 	
 	for (size_t depth = 0; depth < 5; depth++) { /* Personal calculations showed that the Page Table should be of height 5, with 512 entries for each node */
 		uint64_t* entry = get_entry(vpn, current_node_ppn, depth);
