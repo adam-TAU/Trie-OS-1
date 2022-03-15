@@ -106,40 +106,37 @@ static bool remove_mapping(uint64_t *current_node_ppn, uint64_t vpn, size_t dept
 	 */
 	if (depth == 4 || (is_valid(*entry) == false) ) {
 		
-		if (depth != 4) { // in this case, there was nothing to remove to begin with
-			return false;
-		} else if (is_valid(*entry) == false) { // in this case, the entry of the VPN->PPN was empty to begin with
+		if (depth != 4 || (is_valid(*entry) == false) ) { // in this case, the entry of the VPN->PPN was empty to begin with
 			return false;
 		} else { // in this case, there was in fact a mapping that VPN held, and we'll invalidate it as desired
 			invalidate(entry);
 			return true;
 		}
-
-	/* if we still need to advance in the search for the entry, simply advance to the next node in the search path */
-	} else { 
-	
-		/* IF the recursion returned that the node that we're at hasn't had any entries invalidated:
-		 *		we return false to signify to our parent node in the recursion,
-	 	 *		that he can terminate the recursion since none of its entries were invalidated
-		 * ELSE:
-		 *		we continue on to the next step,
-		 *		of determining if the node we're at needs to be freed due to any of its entries being invalidated,
-		 *		which is guaranteed due to <true> being returned.
-		 */
-		if (remove_mapping(entry, vpn, depth + 1) == false) {
-			return false;
-		}
 	}
+	
+	/* if we still need to advance in the search for the entry, simply advance to the next node in the search path */
 
-	/* if we aren't in the page table's root node (which shouldn't be freed at all costs):
-	 *		IF the node is empty of mapping:
-	 *			it frees it, and changes the entry that held the PPN of the node to an invalid entry (valid bit == 0).
-	 *			Then, we return true to signify to our next parent that he had one of its entried invalidated.
-	 * 		ELSE:
-	 *			the current node wasn't freed, and we return false to signify to our parent node in the recursion,
-	 *			that he can terminate the recursion since none of its entries were invalidated. 
+	/* IF the recursion returned that the node that we're at hasn't had any entries invalidated:
+	 *		we return false to signify to our parent node in the recursion,
+ 	 *		that he can terminate the recursion since none of its entries were invalidated
+	 * ELSE:
+	 *		we continue on to the next step,
+	 *		of determining if the node we're at needs to be freed due to any of its entries being invalidated,
+	 *		which is guaranteed due to <true> being returned.
 	 */
-	if (depth != 0) {
+	if (remove_mapping(entry, vpn, depth + 1) == false) {
+		return false;
+		
+	} else if (depth != 0) {
+
+		/* if we aren't in the page table's root node (which shouldn't be freed at all costs):
+		 *		IF the node is empty of mapping:
+		 *			it frees it, and changes the entry that held the PPN of the node to an invalid entry (valid bit == 0).
+		 *			Then, we return true to signify to our next parent that he had one of its entried invalidated.
+		 * 		ELSE:
+		 *			the current node wasn't freed, and we return false to signify to our parent node in the recursion,
+		 *			that he can terminate the recursion since none of its entries were invalidated. 
+		 */
 		return free_node_safe(current_node_ppn);
 	}
 	
